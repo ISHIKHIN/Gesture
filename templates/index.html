@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Распознавание жестов рук - MediaPipe Python</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+        }
+
+        .video-section {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .video-container {
+            position: relative;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .video-feed {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .info-section {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .info-card {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .info-title {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .gesture-display {
+            font-size: 2em;
+            font-weight: bold;
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .hand-count {
+            font-size: 1.5em;
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            width: 100%;
+            margin-top: 10px;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .landmarks-preview {
+            background: #2d2d2d;
+            color: #fff;
+            padding: 10px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.8em;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #4ade80;
+            animation: pulse 2s infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .stats {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🖐️ Распознавание жестов рук с MediaPipe</h1>
+
+        <div class="main-content">
+            <div class="video-section">
+                <div class="video-container">
+                    <img src="/video_feed" class="video-feed" alt="Video Feed" id="videoFeed">
+                </div>
+                <div class="stats" id="stats">
+                    <span class="status"></span> Онлайн распознавание
+                </div>
+            </div>
+
+            <div class="info-section">
+                <div class="gesture-display" id="gestureDisplay">
+                    Ожидание...
+                </div>
+
+                <div class="info-card">
+                    <div class="info-title">📊 Информация</div>
+                    <div class="hand-count" id="handCount">Рук: 0</div>
+                    <div id="handTypes"></div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-title">💾 Сохранение данных</div>
+                    <button class="btn" onclick="saveCurrentLandmarks()">
+                        💾 Сохранить текущие точки
+                    </button>
+                    <button class="btn btn-secondary" onclick="toggleAutoSave()" id="autoSaveBtn">
+                        🤖 Автосохранение (ВЫКЛ)
+                    </button>
+                    <div class="stats" id="saveStatus"></div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-title">📈 Статистика</div>
+                    <div id="statistics">
+                        Загрузка...
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-title">🎯 Распознаваемые жесты</div>
+                    <div style="font-size: 0.85em;">
+                        ✊ Кулак<br>
+                        ☝️ Указательный палец<br>
+                        ✌️ Мир (V)<br>
+                        🤟 Три пальца<br>
+                        🖖 Четыре пальца<br>
+                        🖐️ Открытая ладонь<br>
+                        👍 Класс
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let autoSave = false;
+        let autoSaveInterval = null;
+
+        // Обновление информации о жестах и руках
+        async function updateInfo() {
+            try {
+                // Получаем данные о точках
+                const landmarksResponse = await fetch('/api/landmarks');
+                const landmarksData = await landmarksResponse.json();
+
+                // Обновляем отображение жеста
+                const gestureDisplay = document.getElementById('gestureDisplay');
+                gestureDisplay.textContent = landmarksData.gesture || 'Нет руки';
+
+                // Обновляем количество рук
+                const handCount = document.getElementById('handCount');
+                const handCountNum = landmarksData.hands ? landmarksData.hands.length : 0;
+                handCount.textContent = `Рук: ${handCountNum}`;
+
+                // Отображаем типы рук
+                const handTypesDiv = document.getElementById('handTypes');
+                if (landmarksData.hands && landmarksData.hands.length > 0) {
+                    handTypesDiv.innerHTML = landmarksData.hands.map((hand, idx) =>
+                        `<div style="margin-top: 5px;">Рука ${idx+1}: ${hand.hand_type} (${hand.confidence.toFixed(2)})</div>`
+                    ).join('');
+                } else {
+                    handTypesDiv.innerHTML = '<div style="margin-top: 5px; color: #999;">Нет рук в кадре</div>';
+                }
+
+                // Автосохранение
+                if (autoSave && landmarksData.hands && landmarksData.hands.length > 0) {
+                    await saveCurrentLandmarks(true);
+                }
+
+            } catch (error) {
+                console.error('Ошибка обновления:', error);
+            }
+        }
+
+        // Сохранение текущих точек
+        async function saveCurrentLandmarks(silent = false) {
+            try {
+                const response = await fetch('/api/save_landmarks', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (!silent) {
+                    const statusDiv = document.getElementById('saveStatus');
+                    if (result.success) {
+                        statusDiv.innerHTML = `✅ ${result.message}`;
+                        setTimeout(() => {
+                            if (statusDiv.innerHTML.includes('✅')) {
+                                statusDiv.innerHTML = '';
+                            }
+                        }, 3000);
+                    } else {
+                        statusDiv.innerHTML = `❌ ${result.message}`;
+                    }
+                }
+
+                // Обновляем статистику
+                updateStatistics();
+
+                return result;
+            } catch (error) {
+                console.error('Ошибка сохранения:', error);
+                if (!silent) {
+                    document.getElementById('saveStatus').innerHTML = '❌ Ошибка сохранения';
+                }
+            }
+        }
+
+        // Обновление статистики
+        async function updateStatistics() {
+            try {
+                const response = await fetch('/api/stats');
+                const stats = await response.json();
+
+                const statsDiv = document.getElementById('statistics');
+                statsDiv.innerHTML = `
+                    <div>📊 Всего записей: ${stats.total_records}</div>
+                    <div>💾 Размер файла: ${(stats.file_size / 1024).toFixed(2)} KB</div>
+                    <div style="font-size: 0.8em; margin-top: 5px;">📁 data/hand_landmarks.json</div>
+                `;
+            } catch (error) {
+                console.error('Ошибка статистики:', error);
+            }
+        }
+
+        // Включение/выключение автосохранения
+        function toggleAutoSave() {
+            autoSave = !autoSave;
+            const btn = document.getElementById('autoSaveBtn');
+
+            if (autoSave) {
+                btn.textContent = '🤖 Автосохранение (ВКЛ)';
+                btn.style.background = 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)';
+
+                // Автосохранение каждые 3 секунды
+                autoSaveInterval = setInterval(() => {
+                    saveCurrentLandmarks(true);
+                }, 3000);
+            } else {
+                btn.textContent = '🤖 Автосохранение (ВЫКЛ)';
+                btn.style.background = 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)';
+
+                if (autoSaveInterval) {
+                    clearInterval(autoSaveInterval);
+                    autoSaveInterval = null;
+                }
+            }
+        }
+
+        // Обновление информации каждые 0.5 секунды
+        setInterval(updateInfo, 500);
+
+        // Первоначальная загрузка статистики
+        updateStatistics();
+
+        // Периодическое обновление статистики
+        setInterval(updateStatistics, 10000);
+
+        console.log('✅ Приложение готово! Распознавание жестов активно.');
+    </script>
+</body>
+</html>
