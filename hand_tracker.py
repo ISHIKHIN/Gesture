@@ -129,7 +129,7 @@ class HandTracker:
         return fingers
 
     def is_pinch_gesture(self, landmarks):
-        """Проверяет жест 'мало' (указательный над большим, остальные загнуты).."""
+        """Проверяет жест 'мало' (указательный над большим, остальные загнуты)./."""
         thumb_tip = landmarks[4]
         index_tip = landmarks[8]
 
