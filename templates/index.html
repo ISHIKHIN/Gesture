@@ -3,218 +3,426 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Распознавание жестов рук - MediaPipe Python</title>
+    <title>Hand Gesture Recognition | MediaPipe</title>
+    <link rel="stylesheet" href="/static/style.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            color: #e5e5e5;
+            padding: 24px;
         }
-
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
-
-        h1 {
-            text-align: center;
-            color: white;
-            margin-bottom: 30px;
-            font-size: 2.5em;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-
         .main-content {
             display: grid;
-            grid-template-columns: 1fr 350px;
-            gap: 20px;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
         }
-
         .video-section {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        }
-
-        .video-container {
-            position: relative;
-            background: #000;
-            border-radius: 10px;
+            background: #141414;
+            border-radius: 16px;
+            border: 1px solid #2a2a2a;
             overflow: hidden;
         }
-
+        .meme-section {
+            background: #141414;
+            border-radius: 16px;
+            border: 1px solid #2a2a2a;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .meme-container {
+            flex: 1;
+            background: #000000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+            position: relative;
+        }
+        .meme-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            display: none;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+        .meme-image.active {
+            display: block;
+            opacity: 1;
+        }
+        .meme-placeholder {
+            color: #666666;
+            text-align: center;
+            font-size: 18px;
+            padding: 20px;
+        }
+        .video-container {
+            background: #000;
+            aspect-ratio: 4/3;
+            position: relative;
+        }
         .video-feed {
             width: 100%;
-            height: auto;
-            display: block;
+            height: 100%;
+            object-fit: cover;
         }
-
-        .info-section {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        .stats-bar {
+            padding: 12px 16px;
+            background: #0d0d0d;
+            border-top: 1px solid #2a2a2a;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
         }
-
-        .info-card {
-            margin-bottom: 20px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            border-left: 4px solid #667eea;
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #888888;
         }
-
-        .info-title {
-            font-weight: bold;
-            color: #667eea;
-            margin-bottom: 10px;
-            font-size: 1.1em;
-        }
-
-        .gesture-display {
-            font-size: 2em;
-            font-weight: bold;
-            text-align: center;
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-
-        .hand-count {
-            font-size: 1.5em;
-            text-align: center;
-            margin: 10px 0;
-        }
-
-        .btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 1em;
-            width: 100%;
-            margin-top: 10px;
-            transition: transform 0.2s;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-        }
-
-        .btn:active {
-            transform: translateY(0);
-        }
-
-        .btn-secondary {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        }
-
-        .landmarks-preview {
-            background: #2d2d2d;
-            color: #fff;
-            padding: 10px;
-            border-radius: 8px;
-            font-family: monospace;
-            font-size: 0.8em;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-
-        .status {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
+        .status-dot {
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
-            background: #4ade80;
+            background: #22c55e;
             animation: pulse 2s infinite;
-            margin-right: 8px;
         }
-
         @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
         }
-
-        .stats {
-            font-size: 0.9em;
-            color: #666;
-            margin-top: 10px;
+        .fps-counter {
+            font-size: 12px;
+            color: #888888;
+            font-family: monospace;
+        }
+        .camera-selector {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .camera-select {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            color: #e5e5e5;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .camera-select:hover {
+            background: #222222;
+        }
+        .refresh-cameras {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            color: #e5e5e5;
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .refresh-cameras:hover {
+            background: #222222;
+        }
+        .info-panel {
+            margin-top: 24px;
+            background: #141414;
+            border-radius: 16px;
+            border: 1px solid #2a2a2a;
+            overflow: hidden;
+        }
+        .panel-section {
+            padding: 20px;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        .panel-section:last-child {
+            border-bottom: none;
+        }
+        .panel-title {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #666666;
+            margin-bottom: 16px;
+        }
+        .gesture-display {
+            background: #0a0a0a;
+            border-radius: 12px;
+            padding: 24px;
             text-align: center;
         }
-
-        @media (max-width: 768px) {
+        .gesture-name {
+            font-size: 32px;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 8px;
+        }
+        .hand-count {
+            font-size: 24px;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 12px;
+        }
+        .hand-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .hand-item {
+            background: #0a0a0a;
+            border-radius: 10px;
+            padding: 12px;
+            border-left: 3px solid #3b82f6;
+        }
+        .hand-type {
+            font-size: 14px;
+            font-weight: 500;
+            color: #ffffff;
+            margin-bottom: 8px;
+        }
+        .hand-confidence {
+            font-size: 11px;
+            color: #666666;
+        }
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .btn {
+            width: 100%;
+            padding: 12px 16px;
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #e5e5e5;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn:hover {
+            background: #222222;
+            border-color: #3a3a3a;
+        }
+        .btn-primary {
+            background: #3b82f6;
+            border-color: #3b82f6;
+            color: #ffffff;
+        }
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+        .btn-secondary.active {
+            background: #22c55e;
+            border-color: #22c55e;
+            color: #ffffff;
+        }
+        .save-status {
+            margin-top: 12px;
+            padding: 8px 12px;
+            background: #0a0a0a;
+            border-radius: 8px;
+            font-size: 12px;
+            text-align: center;
+        }
+        .save-status.success {
+            color: #22c55e;
+        }
+        .save-status.error {
+            color: #ef4444;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .stat-card {
+            background: #0a0a0a;
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: #ffffff;
+        }
+        .stat-label {
+            font-size: 11px;
+            color: #666666;
+            margin-top: 4px;
+        }
+        .file-info {
+            margin-top: 12px;
+            padding: 8px 12px;
+            background: #0a0a0a;
+            border-radius: 8px;
+            font-size: 11px;
+            color: #666666;
+            text-align: center;
+            font-family: monospace;
+        }
+        .gesture-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .gesture-tag {
+            font-size: 11px;
+            padding: 4px 10px;
+            background: #0a0a0a;
+            border-radius: 6px;
+            color: #888888;
+            border: 1px solid #2a2a2a;
+        }
+        .gesture-tag.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        .meme-image {
+            animation: fadeIn 0.3s ease;
+        }
+        @media (max-width: 1024px) {
             .main-content {
                 grid-template-columns: 1fr;
+            }
+            body {
+                padding: 16px;
+            }
+            .camera-selector {
+                margin-left: 0;
+                width: 100%;
+                justify-content: space-between;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🖐️ Распознавание жестов рук с MediaPipe</h1>
+        <div class="header">
+            <h1>Hand Gesture Recognition</h1>
+            <div class="subtitle">Real-time gesture detection with MediaPipe</div>
+        </div>
 
         <div class="main-content">
+            <!-- Левая колонка: Видеопоток -->
             <div class="video-section">
                 <div class="video-container">
-                    <img src="/video_feed" class="video-feed" alt="Video Feed" id="videoFeed">
+                    <img src="/video_feed" class="video-feed" alt="Video Feed" id="videoFeed" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'640\' height=\'480\' viewBox=\'0 0 640 480\'%3E%3Crect width=\'640\' height=\'480\' fill=\'%23333\'/%3E%3Ctext x=\'320\' y=\'240\' font-size=\'20\' fill=\'%23fff\' text-anchor=\'middle\'%3ECamera Error%3C/text%3E%3C/svg%3E'">
                 </div>
-                <div class="stats" id="stats">
-                    <span class="status"></span> Онлайн распознавание
+                <div class="stats-bar">
+                    <div class="status-indicator">
+                        <span class="status-dot"></span>
+                        <span>Live</span>
+                    </div>
+                    <div class="fps-counter" id="fpsCounter">0 fps</div>
+                    <div class="camera-selector">
+                        <select id="cameraSelect" class="camera-select" onchange="switchCamera()">
+                            <option value="">Loading cameras...</option>
+                        </select>
+                        <button class="refresh-cameras" onclick="loadCameras()" title="Refresh cameras">⟳</button>
+                    </div>
                 </div>
             </div>
 
-            <div class="info-section">
-                <div class="gesture-display" id="gestureDisplay">
-                    Ожидание...
+            <!-- Правая колонка: Мемы -->
+            <div class="meme-section">
+                <div class="panel-section">
+                    <div class="panel-title">Reaction Meme</div>
                 </div>
-
-                <div class="info-card">
-                    <div class="info-title">📊 Информация</div>
-                    <div class="hand-count" id="handCount">Рук: 0</div>
-                    <div id="handTypes"></div>
+                <div class="meme-container">
+                    <div class="meme-placeholder" id="memePlaceholder">
+                        🤚 Make a gesture to see reaction
+                    </div>
+                    <img id="memeImage" class="meme-image" alt="Meme">
                 </div>
+            </div>
+        </div>
 
-                <div class="info-card">
-                    <div class="info-title">💾 Сохранение данных</div>
-                    <button class="btn" onclick="saveCurrentLandmarks()">
-                        💾 Сохранить текущие точки
+        <!-- Нижняя панель с информацией -->
+        <div class="info-panel">
+            <div class="panel-section">
+                <div class="panel-title">Current Gesture</div>
+                <div class="gesture-display">
+                    <div class="gesture-name" id="gestureName">Waiting...</div>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <div class="panel-title">Hand Detection</div>
+                <div class="hand-count" id="handCount">0 hands</div>
+                <div id="handList" class="hand-list"></div>
+            </div>
+
+            <div class="panel-section">
+                <div class="panel-title">Data Management</div>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="saveCurrentLandmarks()">
+                        Save Current Frame
                     </button>
                     <button class="btn btn-secondary" onclick="toggleAutoSave()" id="autoSaveBtn">
-                        🤖 Автосохранение (ВЫКЛ)
+                        Auto Save (OFF)
                     </button>
-                    <div class="stats" id="saveStatus"></div>
                 </div>
+                <div id="saveStatus" class="save-status"></div>
+            </div>
 
-                <div class="info-card">
-                    <div class="info-title">📈 Статистика</div>
-                    <div id="statistics">
-                        Загрузка...
+            <div class="panel-section">
+                <div class="panel-title">Statistics</div>
+                <div class="stats-grid" id="statistics">
+                    <div class="stat-card">
+                        <div class="stat-value">0</div>
+                        <div class="stat-label">Records</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">0 KB</div>
+                        <div class="stat-label">Storage</div>
                     </div>
                 </div>
+                <div class="file-info">data/hand_landmarks.json</div>
+            </div>
 
-                <div class="info-card">
-                    <div class="info-title">🎯 Распознаваемые жесты</div>
-                    <div style="font-size: 0.85em;">
-                        ✊ Кулак<br>
-                        ☝️ Указательный палец<br>
-                        ✌️ Мир (V)<br>
-                        🤟 Три пальца<br>
-                        🖖 Четыре пальца<br>
-                        🖐️ Открытая ладонь<br>
-                        👍 Класс
+            <div class="panel-section">
+                <div class="panel-title">Supported Gestures with Memes</div>
+                    <div class="gesture-list">
+                        <span class="gesture-tag" data-gesture="Pointing Up">☝️ Pointing Up</span>
+                        <span class="gesture-tag" data-gesture="Thumbs Up">👍 Thumbs Up</span>
+                        <span class="gesture-tag" data-gesture="Peace">✌️ Peace (V)</span>
+                        <span class="gesture-tag" data-gesture="Little">🤏 Little (Pinch)</span>
+                        <span class="gesture-tag" data-gesture="Two Palms Parallel">🤲 Two Palms Parallel</span>
+                        <span class="gesture-tag" data-gesture="Here It Is">👉 Here It Is</span>
+                        <span class="gesture-tag" data-gesture="I Don't Know">🤷 I Don't Know</span>
+                        <span class="gesture-tag" data-gesture="Open Palm">🖐️ Open Palm</span>
+                        <span class="gesture-tag" data-gesture="Cherry">🍒 Cherry (Duck)</span>
+                        <span class="gesture-tag">👊 Fist</span>
+                        <span class="gesture-tag">🤟 Rock</span>
+                        <span class="gesture-tag">👌 OK</span>
                     </div>
                 </div>
             </div>
@@ -224,44 +432,189 @@
     <script>
         let autoSave = false;
         let autoSaveInterval = null;
+        let currentMeme = 'none';
 
-        // Обновление информации о жестах и руках
+        // Загрузка списка камер
+        async function loadCameras() {
+            try {
+                const response = await fetch('/api/cameras');
+                const data = await response.json();
+
+                const select = document.getElementById('cameraSelect');
+                select.innerHTML = '';
+
+                if (data.cameras && data.cameras.length > 0) {
+                    data.cameras.forEach(camera => {
+                        const option = document.createElement('option');
+                        option.value = camera.id;
+                        option.textContent = `${camera.name} (${camera.resolution})`;
+                        if (camera.id === data.current_camera) {
+                            option.selected = true;
+                        }
+                        select.appendChild(option);
+                    });
+                } else {
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.textContent = 'No cameras found';
+                    select.appendChild(option);
+                }
+            } catch (error) {
+                console.error('Error loading cameras:', error);
+                const select = document.getElementById('cameraSelect');
+                select.innerHTML = '<option value="">Error loading cameras</option>';
+            }
+        }
+
+        // Переключение камеры
+        async function switchCamera() {
+            const select = document.getElementById('cameraSelect');
+            const cameraId = parseInt(select.value);
+
+            if (isNaN(cameraId) || cameraId < 0) {
+                console.log('Invalid camera ID');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/switch_camera', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ camera_id: cameraId })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    console.log(result.message);
+                    // Перезагружаем видео поток
+                    const videoFeed = document.getElementById('videoFeed');
+                    videoFeed.src = '/video_feed?' + new Date().getTime();
+
+                    // Показываем уведомление
+                    showSaveStatus('Camera switched successfully', 'success');
+                } else {
+                    console.error('Failed to switch camera:', result.message);
+                    showSaveStatus('Failed to switch camera', 'error');
+                    // Перезагружаем список камер
+                    loadCameras();
+                }
+            } catch (error) {
+                console.error('Error switching camera:', error);
+                showSaveStatus('Error switching camera', 'error');
+            }
+        }
+
         async function updateInfo() {
             try {
-                // Получаем данные о точках
-                const landmarksResponse = await fetch('/api/landmarks');
-                const landmarksData = await landmarksResponse.json();
+                const response = await fetch('/api/landmarks');
+                const data = await response.json();
 
-                // Обновляем отображение жеста
-                const gestureDisplay = document.getElementById('gestureDisplay');
-                gestureDisplay.textContent = landmarksData.gesture || 'Нет руки';
+                // Обновляем жест
+                document.getElementById('gestureName').textContent = data.gesture || 'No hand';
+
+                // Обновляем мем - ТОЛЬКО если мем изменился
+                if (data.meme && data.meme !== 'none' && data.meme !== currentMeme) {
+                    updateMemeDisplay(data.meme);
+                    currentMeme = data.meme;
+                } else if (data.meme === 'none' && currentMeme !== 'none') {
+                    hideMeme();
+                    currentMeme = 'none';
+                }
 
                 // Обновляем количество рук
-                const handCount = document.getElementById('handCount');
-                const handCountNum = landmarksData.hands ? landmarksData.hands.length : 0;
-                handCount.textContent = `Рук: ${handCountNum}`;
+                const handCountNum = data.hands ? data.hands.length : 0;
+                document.getElementById('handCount').textContent = `${handCountNum} hand${handCountNum !== 1 ? 's' : ''}`;
+                document.getElementById('fpsCounter').textContent = `${data.fps || 0} fps`;
 
-                // Отображаем типы рук
-                const handTypesDiv = document.getElementById('handTypes');
-                if (landmarksData.hands && landmarksData.hands.length > 0) {
-                    handTypesDiv.innerHTML = landmarksData.hands.map((hand, idx) =>
-                        `<div style="margin-top: 5px;">Рука ${idx+1}: ${hand.hand_type} (${hand.confidence.toFixed(2)})</div>`
-                    ).join('');
+                // Обновляем активные теги жестов
+                updateActiveGestureTags(data.gesture);
+
+                // Обновляем список рук
+                const handList = document.getElementById('handList');
+                if (data.hands && data.hands.length > 0) {
+                    handList.innerHTML = data.hands.map((hand, idx) => `
+                        <div class="hand-item">
+                            <div class="hand-type">${hand.hand_type} Hand</div>
+                            <div class="hand-confidence">confidence: ${(hand.confidence * 100).toFixed(1)}%</div>
+                        </div>
+                    `).join('');
                 } else {
-                    handTypesDiv.innerHTML = '<div style="margin-top: 5px; color: #999;">Нет рук в кадре</div>';
+                    handList.innerHTML = '<div style="color: #666666; font-size: 13px;">No hands detected</div>';
                 }
 
                 // Автосохранение
-                if (autoSave && landmarksData.hands && landmarksData.hands.length > 0) {
+                if (autoSave && data.hands && data.hands.length > 0) {
                     await saveCurrentLandmarks(true);
                 }
 
             } catch (error) {
-                console.error('Ошибка обновления:', error);
+                console.error('Update error:', error);
             }
         }
 
-        // Сохранение текущих точек
+        function updateMemeDisplay(memeFilename) {
+            const memeImage = document.getElementById('memeImage');
+            const placeholder = document.getElementById('memePlaceholder');
+
+            // Если мем уже активен и такой же, ничего не делаем
+            if (memeImage.classList.contains('active') && memeImage.src.includes(memeFilename)) {
+                return;
+            }
+
+            // Предзагружаем изображение перед отображением
+            const img = new Image();
+            img.onload = function() {
+                memeImage.src = img.src;
+                memeImage.classList.add('active');
+                placeholder.style.display = 'none';
+
+                // Добавляем анимацию только при смене мема
+                memeImage.style.animation = 'none';
+                memeImage.offsetHeight; // Trigger reflow
+                memeImage.style.animation = 'fadeIn 0.3s ease';
+            };
+            img.src = `/static/images/${memeFilename}`;
+        }
+
+        function hideMeme() {
+            const memeImage = document.getElementById('memeImage');
+            const placeholder = document.getElementById('memePlaceholder');
+
+            // Если мем уже скрыт, ничего не делаем
+            if (!memeImage.classList.contains('active')) {
+                return;
+            }
+
+            memeImage.classList.remove('active');
+            memeImage.style.animation = ''; // Сбрасываем анимацию
+            placeholder.style.display = 'block';
+        }
+
+        function updateActiveGestureTags(currentGesture) {
+            const tags = document.querySelectorAll('.gesture-tag');
+            tags.forEach(tag => {
+                tag.classList.remove('active');
+                if (tag.getAttribute('data-gesture') === currentGesture) {
+                    tag.classList.add('active');
+                }
+            });
+        }
+
+        function showSaveStatus(message, type) {
+            const statusDiv = document.getElementById('saveStatus');
+            statusDiv.textContent = message;
+            statusDiv.className = `save-status ${type}`;
+            setTimeout(() => {
+                if (statusDiv.textContent === message) {
+                    statusDiv.textContent = '';
+                    statusDiv.className = 'save-status';
+                }
+            }, 2000);
+        }
+
         async function saveCurrentLandmarks(silent = false) {
             try {
                 const response = await fetch('/api/save_landmarks', {
@@ -274,64 +627,53 @@
                 const result = await response.json();
 
                 if (!silent) {
-                    const statusDiv = document.getElementById('saveStatus');
                     if (result.success) {
-                        statusDiv.innerHTML = `✅ ${result.message}`;
-                        setTimeout(() => {
-                            if (statusDiv.innerHTML.includes('✅')) {
-                                statusDiv.innerHTML = '';
-                            }
-                        }, 3000);
+                        showSaveStatus(`Saved (record #${result.record_id})`, 'success');
                     } else {
-                        statusDiv.innerHTML = `❌ ${result.message}`;
+                        showSaveStatus(`Error: ${result.message}`, 'error');
                     }
                 }
 
-                // Обновляем статистику
                 updateStatistics();
 
                 return result;
             } catch (error) {
-                console.error('Ошибка сохранения:', error);
+                console.error('Save error:', error);
                 if (!silent) {
-                    document.getElementById('saveStatus').innerHTML = '❌ Ошибка сохранения';
+                    showSaveStatus('Save failed', 'error');
                 }
             }
         }
 
-        // Обновление статистики
         async function updateStatistics() {
             try {
                 const response = await fetch('/api/stats');
                 const stats = await response.json();
 
-                const statsDiv = document.getElementById('statistics');
-                statsDiv.innerHTML = `
-                    <div>📊 Всего записей: ${stats.total_records}</div>
-                    <div>💾 Размер файла: ${(stats.file_size / 1024).toFixed(2)} KB</div>
-                    <div style="font-size: 0.8em; margin-top: 5px;">📁 data/hand_landmarks.json</div>
-                `;
+                const statCards = document.querySelectorAll('.stat-card');
+                if (statCards.length >= 2) {
+                    statCards[0].querySelector('.stat-value').textContent = stats.total_records;
+                    statCards[1].querySelector('.stat-value').textContent = `${(stats.file_size / 1024).toFixed(1)} KB`;
+                }
             } catch (error) {
-                console.error('Ошибка статистики:', error);
+                console.error('Stats error:', error);
             }
         }
 
-        // Включение/выключение автосохранения
         function toggleAutoSave() {
             autoSave = !autoSave;
             const btn = document.getElementById('autoSaveBtn');
 
             if (autoSave) {
-                btn.textContent = '🤖 Автосохранение (ВКЛ)';
-                btn.style.background = 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)';
+                btn.textContent = 'Auto Save (ON)';
+                btn.classList.add('active');
 
-                // Автосохранение каждые 3 секунды
                 autoSaveInterval = setInterval(() => {
                     saveCurrentLandmarks(true);
                 }, 3000);
             } else {
-                btn.textContent = '🤖 Автосохранение (ВЫКЛ)';
-                btn.style.background = 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)';
+                btn.textContent = 'Auto Save (OFF)';
+                btn.classList.remove('active');
 
                 if (autoSaveInterval) {
                     clearInterval(autoSaveInterval);
@@ -340,16 +682,32 @@
             }
         }
 
-        // Обновление информации каждые 0.5 секунды
-        setInterval(updateInfo, 500);
+        // Предзагрузка всех мемов
+        function preloadMemes() {
+    const memes = [
+        'pic_finger_up.jpg',
+        'pic_thumb_up.jpg',
+        'pic_peace.jpg',
+        'fingers_little.jpeg',
+        '2_hands_infrontofeachother.jpg',
+        'i_don`t_know.jpg',
+        'open_palm.jpg',
+        'cherry_pic.jpg'
+    ];
+    memes.forEach(meme => {
+        const img = new Image();
+        img.src = `/static/images/${meme}`;
+    });
+}
 
-        // Первоначальная загрузка статистики
+        // Инициализация
+        loadCameras();
+        preloadMemes();
+        setInterval(updateInfo, 200);
         updateStatistics();
+        setInterval(updateStatistics, 5000);
 
-        // Периодическое обновление статистики
-        setInterval(updateStatistics, 10000);
-
-        console.log('✅ Приложение готово! Распознавание жестов активно.');
+        console.log('System initialized');
     </script>
 </body>
 </html>
