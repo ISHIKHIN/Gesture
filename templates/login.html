@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход | Сиестема отслеживания рук</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: radial-gradient(circle at 20% 30%, #0a0a0f 0%, #020205 100%);
+            color: #ffffff;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .login-container {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            max-width: 440px;
+            padding: 24px;
+        }
+
+        .login-card {
+            background: rgba(15, 15, 25, 0.8);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            border: 1px solid rgba(100, 100, 120, 0.3);
+            padding: 40px 32px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .logo h1 {
+            font-family: 'Space Grotesk', monospace;
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff 0%, #3b82f6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo p {
+            font-size: 13px;
+            color: #888;
+            margin-top: 8px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 500;
+            color: #aaa;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        .input-group input {
+            width: 100%;
+            background: rgba(20, 20, 30, 0.8);
+            border: 1px solid rgba(100, 100, 120, 0.3);
+            border-radius: 12px;
+            padding: 14px 16px;
+            color: #fff;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s ease;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            background: rgba(30, 30, 45, 0.9);
+        }
+
+        .input-group input::placeholder {
+            color: #555;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #aaa;
+            cursor: pointer;
+        }
+
+        .checkbox-label input {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: #3b82f6;
+        }
+
+        .forgot-link {
+            font-size: 13px;
+            color: #3b82f6;
+            text-decoration: none;
+        }
+
+        .forgot-link:hover {
+            text-decoration: underline;
+        }
+
+        .btn-login {
+            width: 100%;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: 'Inter', sans-serif;
+            margin-bottom: 20px;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 20px -5px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-login:active {
+            transform: translateY(0);
+        }
+
+        .register-link {
+            text-align: center;
+            font-size: 13px;
+            color: #888;
+        }
+
+        .register-link a {
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .register-link a:hover {
+            text-decoration: underline;
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #ef4444;
+            text-align: center;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .success-message {
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #22c55e;
+            text-align: center;
+            display: none;
+        }
+
+        .success-message.show {
+            display: block;
+        }
+
+        hr {
+            border-color: rgba(100, 100, 120, 0.2);
+            margin: 20px 0;
+        }
+
+        .back-home {
+            text-align: center;
+            margin-top: 16px;
+        }
+
+        .back-home a {
+            color: #888;
+            font-size: 12px;
+            text-decoration: none;
+        }
+
+        .back-home a:hover {
+            color: #3b82f6;
+        }
+    </style>
+</head>
+<body>
+
+<div id="canvas-container"></div>
+
+<div class="login-container">
+    <div class="login-card">
+        <div class="logo">
+            <h1>Gesture Wave</h1>
+            <p>Войдите, чтобы продолжить</p>
+        </div>
+
+        <div id="errorMessage" class="error-message"></div>
+        <div id="successMessage" class="success-message"></div>
+
+        <form id="loginForm">
+            <div class="input-group">
+                <label>НИКНЕЙМ ИЛИ EMAIL</label>
+                <input type="text" id="identifier" placeholder="никнейм или email" required>
+            </div>
+            <div class="input-group">
+                <label>ПАРОЛЬ</label>
+                <input type="password" id="password" placeholder="••••••••" required>
+            </div>
+            <div class="checkbox-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="remember"> Запомнить меня
+                </label>
+                <a href="#" class="forgot-link">Забыли паорль?</a>
+            </div>
+            <button type="submit" class="btn-login">Войти</button>
+        </form>
+
+        <div class="register-link">
+            Нет аккаунта? <a href="/register">Создайте аккаунт</a>
+        </div>
+
+        <hr>
+
+        <div class="back-home">
+            <a href="/">← Обратно на главную страницу</a>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<script>
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setClearColor(0x000000, 0);
+    container.appendChild(renderer.domElement);
+
+    const starsCount = 2000;
+    const starsGeometry = new THREE.BufferGeometry();
+    const starsPositions = new Float32Array(starsCount * 3);
+    const starsColors = new Float32Array(starsCount * 3);
+
+    for (let i = 0; i < starsCount; i++) {
+        starsPositions[i*3] = (Math.random() - 0.5) * 2000;
+        starsPositions[i*3+1] = (Math.random() - 0.5) * 1000;
+        starsPositions[i*3+2] = (Math.random() - 0.5) * 500 - 150;
+
+        const colorType = Math.random();
+        if (colorType < 0.5) {
+            starsColors[i*3] = 0.5 + Math.random() * 0.5;
+            starsColors[i*3+1] = 0.6 + Math.random() * 0.4;
+            starsColors[i*3+2] = 1.0;
+        } else if (colorType < 0.8) {
+            starsColors[i*3] = 1.0;
+            starsColors[i*3+1] = 1.0;
+            starsColors[i*3+2] = 1.0;
+        } else {
+            starsColors[i*3] = 0.2 + Math.random() * 0.3;
+            starsColors[i*3+1] = 0.3 + Math.random() * 0.3;
+            starsColors[i*3+2] = 1.0;
+        }
+    }
+
+    starsGeometry.setAttribute('position', new THREE.BufferAttribute(starsPositions, 3));
+    starsGeometry.setAttribute('color', new THREE.BufferAttribute(starsColors, 3));
+
+    const starsMaterial = new THREE.PointsMaterial({
+        size: 1.8,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.9,
+        blending: THREE.AdditiveBlending
+    });
+
+    const starsSystem = new THREE.Points(starsGeometry, starsMaterial);
+    scene.add(starsSystem);
+
+    const bigStarsCount = 400;
+    const bigStarsGeometry = new THREE.BufferGeometry();
+    const bigStarsPositions = new Float32Array(bigStarsCount * 3);
+    const bigStarsColorsArray = new Float32Array(bigStarsCount * 3);
+
+    for (let i = 0; i < bigStarsCount; i++) {
+        bigStarsPositions[i*3] = (Math.random() - 0.5) * 1800;
+        bigStarsPositions[i*3+1] = (Math.random() - 0.5) * 900;
+        bigStarsPositions[i*3+2] = (Math.random() - 0.5) * 400 - 100;
+
+        const isBlue = Math.random() > 0.6;
+        if (isBlue) {
+            bigStarsColorsArray[i*3] = 0.5 + Math.random() * 0.5;
+            bigStarsColorsArray[i*3+1] = 0.7 + Math.random() * 0.3;
+            bigStarsColorsArray[i*3+2] = 1.0;
+        } else {
+            bigStarsColorsArray[i*3] = 1.0;
+            bigStarsColorsArray[i*3+1] = 1.0;
+            bigStarsColorsArray[i*3+2] = 1.0;
+        }
+    }
+
+    bigStarsGeometry.setAttribute('position', new THREE.BufferAttribute(bigStarsPositions, 3));
+    bigStarsGeometry.setAttribute('color', new THREE.BufferAttribute(bigStarsColorsArray, 3));
+
+    const bigStarsMaterial = new THREE.PointsMaterial({
+        size: 1.0,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.95,
+        blending: THREE.AdditiveBlending
+    });
+
+    const bigStarsSystem = new THREE.Points(bigStarsGeometry, bigStarsMaterial);
+    scene.add(bigStarsSystem);
+
+    camera.position.z = 300;
+
+    let mouseX = 0, mouseY = 0;
+    document.addEventListener('mousemove', (event) => {
+        mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+        mouseY = (event.clientY / window.innerHeight) * 2 - 1;
+    });
+
+    function animateStars() {
+        requestAnimationFrame(animateStars);
+        starsSystem.rotation.y = mouseX * 0.15;
+        starsSystem.rotation.x = mouseY * 0.1;
+        bigStarsSystem.rotation.y = mouseX * 0.12;
+        bigStarsSystem.rotation.x = mouseY * 0.08;
+        renderer.render(scene, camera);
+    }
+
+    animateStars();
+
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    const loginForm = document.getElementById('loginForm');
+    const errorDiv = document.getElementById('errorMessage');
+    const successDiv = document.getElementById('successMessage');
+
+    function showError(message) {
+        errorDiv.textContent = message;
+        errorDiv.classList.add('show');
+        successDiv.classList.remove('show');
+        setTimeout(() => {
+            errorDiv.classList.remove('show');
+        }, 3000);
+    }
+
+    function showSuccess(message) {
+        successDiv.textContent = message;
+        successDiv.classList.add('show');
+        errorDiv.classList.remove('show');
+    }
+
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const identifier = document.getElementById('identifier').value.trim();
+        const password = document.getElementById('password').value;
+        const remember = document.getElementById('remember').checked;
+
+        if (!identifier || !password) {
+            showError('Please fill in all fields');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ identifier, password, remember })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showSuccess('Login successful! Redirecting...');
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 1000);
+            } else {
+                showError(data.message);
+            }
+        } catch (error) {
+            showError('Network error. Please try again.');
+        }
+    });
+</script>
+</body>
+</html>

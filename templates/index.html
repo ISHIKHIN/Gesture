@@ -2,712 +2,1200 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hand Gesture Recognition | MediaPipe</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Gesture Wave | Система отслеживания рук</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #0a0a0a;
-            color: #e5e5e5;
-            padding: 24px;
+            background: radial-gradient(circle at 20% 30%, #0a0a0f 0%, #020205 100%);
+            color: #ffffff;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
         }
+
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
         .container {
-            max-width: 1400px;
+            max-width: 1440px;
             margin: 0 auto;
+            padding: 24px;
+            position: relative;
+            z-index: 2;
         }
-        .main-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-        }
-        .video-section {
-            background: #141414;
-            border-radius: 16px;
-            border: 1px solid #2a2a2a;
-            overflow: hidden;
-        }
-        .meme-section {
-            background: #141414;
-            border-radius: 16px;
-            border: 1px solid #2a2a2a;
-            overflow: hidden;
+
+        .page-wrapper {
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
         }
-        .meme-container {
+
+        .content-main {
             flex: 1;
-            background: #000000;
+        }
+
+        .bottom-spacer {
+            height: 100px;
+            width: 100%;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 768px) {
+            .bottom-spacer {
+                height: 40px;
+            }
+            .container {
+                padding: 16px;
+            }
+        }
+
+        /* ========== ОБЩИЕ СТИЛИ ========== */
+        .header {
+            margin-bottom: 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            padding: 16px 0;
+            border-bottom: 1px solid rgba(100, 100, 120, 0.2);
+        }
+
+        .title-group h1 {
+            font-family: 'Space Grotesk', monospace;
+            font-weight: 700;
+            font-size: clamp(2rem, 5vw, 2.8rem);
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #fff 0%, #3b82f6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .status-pill {
+            background: rgba(20,20,30,0.6);
+            backdrop-filter: blur(8px);
+            padding: 8px 16px;
+            border-radius: 100px;
+            font-size: 12px;
+            font-weight: 500;
+            border: 1px solid rgba(100,100,120,0.3);
             display: flex;
             align-items: center;
-            justify-content: center;
-            min-height: 400px;
+            gap: 8px;
+        }
+
+        .user-menu {
+            background: rgba(20,20,30,0.6);
+            backdrop-filter: blur(8px);
+            padding: 8px 16px;
+            border-radius: 100px;
+            border: 1px solid rgba(100,100,120,0.3);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: #fff;
+        }
+
+        .logout-btn, .login-btn {
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 100px;
+            padding: 6px 16px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            color: #3b82f6;
+        }
+
+        .logout-btn {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+        }
+
+        .logout-btn:hover {
+            background: rgba(239, 68, 68, 0.4);
+        }
+
+        .login-btn:hover {
+            background: rgba(59, 130, 246, 0.4);
+        }
+
+        .pulse-ring {
+            width: 8px;
+            height: 8px;
+            background: #22c55e;
+            border-radius: 50%;
+            box-shadow: 0 0 0 0 rgba(34,197,94,0.7);
+            animation: pulse-ring 1.5s infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(34,197,94,0.7); }
+            70% { box-shadow: 0 0 0 8px rgba(34,197,94,0); }
+            100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+        }
+
+        .glass-card {
+            background: rgba(15,15,25,0.7);
+            backdrop-filter: blur(12px);
+            border-radius: 24px;
+            border: 1px solid rgba(100,100,120,0.25);
+            overflow: hidden;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1.4fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .video-wrapper {
             position: relative;
-        }
-        .meme-image {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-            display: none;
-            image-rendering: -webkit-optimize-contrast;
-            image-rendering: crisp-edges;
-            backface-visibility: hidden;
-            -webkit-backface-visibility: hidden;
-        }
-        .meme-image.active {
-            display: block;
-            opacity: 1;
-        }
-        .meme-placeholder {
-            color: #666666;
-            text-align: center;
-            font-size: 18px;
-            padding: 20px;
-        }
-        .video-container {
-            background: #000;
             aspect-ratio: 4/3;
-            position: relative;
+            background: #000000;
+            overflow: hidden;
         }
+
         .video-feed {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            display: block;
         }
-        .stats-bar {
+
+        .video-meta {
             padding: 12px 16px;
-            background: #0d0d0d;
-            border-top: 1px solid #2a2a2a;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 16px;
             flex-wrap: wrap;
+            background: rgba(0,0,0,0.4);
+            border-top: 1px solid rgba(100,100,120,0.2);
         }
-        .status-indicator {
+
+        .live-indicator {
             display: flex;
             align-items: center;
             gap: 8px;
             font-size: 12px;
-            color: #888888;
         }
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #22c55e;
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
-        }
-        .fps-counter {
+
+        .fps-text {
+            font-family: 'Space Grotesk', monospace;
+            background: rgba(0,0,0,0.5);
+            padding: 4px 10px;
+            border-radius: 6px;
             font-size: 12px;
-            color: #888888;
+            border: 1px solid rgba(100,100,120,0.3);
+        }
+
+        .camera-select {
+            background: rgba(20,20,30,0.8);
+            border: 1px solid rgba(100,100,120,0.4);
+            border-radius: 6px;
+            padding: 4px 10px;
+            color: #fff;
+            font-size: 12px;
+            cursor: pointer;
             font-family: monospace;
         }
-        .camera-selector {
-            margin-left: auto;
+
+        .icon-btn {
+            background: rgba(20,20,30,0.8);
+            border: 1px solid rgba(100,100,120,0.4);
+            border-radius: 6px;
+            padding: 4px 10px;
+            cursor: pointer;
+            color: #fff;
+            font-size: 12px;
+        }
+
+        .meme-panel {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .meme-header {
+            padding: 16px 20px;
+            font-weight: 600;
+            font-size: 11px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            border-bottom: 1px solid rgba(100,100,120,0.2);
+            color: #888;
+        }
+
+        .meme-stage {
+            flex: 1;
+            min-height: 350px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            justify-content: center;
+            background: rgba(0,0,0,0.3);
         }
-        .camera-select {
-            background: #1a1a1a;
-            border: 1px solid #2a2a2a;
-            color: #e5e5e5;
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 12px;
-            cursor: pointer;
-            font-family: inherit;
-        }
-        .camera-select:hover {
-            background: #222222;
-        }
-        .refresh-cameras {
-            background: #1a1a1a;
-            border: 1px solid #2a2a2a;
-            color: #e5e5e5;
-            padding: 4px 8px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 12px;
-        }
-        .refresh-cameras:hover {
-            background: #222222;
-        }
-        .info-panel {
-            margin-top: 24px;
-            background: #141414;
-            border-radius: 16px;
-            border: 1px solid #2a2a2a;
-            overflow: hidden;
-        }
-        .panel-section {
-            padding: 20px;
-            border-bottom: 1px solid #2a2a2a;
-        }
-        .panel-section:last-child {
-            border-bottom: none;
-        }
-        .panel-title {
-            font-size: 13px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: #666666;
-            margin-bottom: 16px;
-        }
-        .gesture-display {
-            background: #0a0a0a;
+
+        .meme-image {
+            max-width: 85%;
+            max-height: 280px;
+            object-fit: contain;
             border-radius: 12px;
-            padding: 24px;
+            display: none;
+        }
+
+        .meme-image.active {
+            display: block;
+        }
+
+        .meme-placeholder {
             text-align: center;
+            color: #666;
+            font-size: 13px;
         }
-        .gesture-name {
-            font-size: 32px;
-            font-weight: 600;
-            color: #ffffff;
-            margin-bottom: 8px;
+
+        .info-strip {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-bottom: 24px;
         }
-        .hand-count {
-            font-size: 24px;
-            font-weight: 600;
-            color: #ffffff;
+
+        .stat-block {
+            background: rgba(15,15,25,0.7);
+            backdrop-filter: blur(8px);
+            border-radius: 20px;
+            padding: 20px;
+            border: 1px solid rgba(100,100,120,0.25);
+        }
+
+        .stat-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #666;
             margin-bottom: 12px;
         }
-        .hand-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
+
+        .gesture-name-live {
+            font-family: 'Space Grotesk', monospace;
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
-        .hand-item {
-            background: #0a0a0a;
-            border-radius: 10px;
-            padding: 12px;
-            border-left: 3px solid #3b82f6;
-        }
-        .hand-type {
-            font-size: 14px;
-            font-weight: 500;
-            color: #ffffff;
-            margin-bottom: 8px;
-        }
-        .hand-confidence {
-            font-size: 11px;
-            color: #666666;
-        }
-        .btn-group {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .btn {
-            width: 100%;
-            padding: 12px 16px;
-            background: #1a1a1a;
-            border: 1px solid #2a2a2a;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: 500;
-            color: #e5e5e5;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        .btn:hover {
-            background: #222222;
-            border-color: #3a3a3a;
-        }
-        .btn-primary {
-            background: #3b82f6;
-            border-color: #3b82f6;
-            color: #ffffff;
-        }
-        .btn-primary:hover {
-            background: #2563eb;
-        }
-        .btn-secondary.active {
-            background: #22c55e;
-            border-color: #22c55e;
-            color: #ffffff;
-        }
-        .save-status {
-            margin-top: 12px;
-            padding: 8px 12px;
-            background: #0a0a0a;
-            border-radius: 8px;
+
+        .gesture-confidence {
             font-size: 12px;
-            text-align: center;
+            color: #3b82f6;
+            margin-top: 8px;
         }
-        .save-status.success {
-            color: #22c55e;
+
+        .hand-count-number {
+            font-size: 36px;
+            font-weight: 700;
+            color: #fff;
         }
-        .save-status.error {
-            color: #ef4444;
-        }
-        .stats-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
-        .stat-card {
-            background: #0a0a0a;
-            border-radius: 10px;
-            padding: 12px;
-            text-align: center;
-        }
-        .stat-value {
-            font-size: 24px;
-            font-weight: 600;
-            color: #ffffff;
-        }
-        .stat-label {
-            font-size: 11px;
-            color: #666666;
-            margin-top: 4px;
-        }
-        .file-info {
-            margin-top: 12px;
+
+        .hand-chip {
+            background: rgba(30,30,45,0.5);
+            border-left: 2px solid #3b82f6;
             padding: 8px 12px;
-            background: #0a0a0a;
+            margin-top: 8px;
             border-radius: 8px;
-            font-size: 11px;
-            color: #666666;
-            text-align: center;
-            font-family: monospace;
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
         }
-        .gesture-list {
+
+        .gesture-tag-cloud {
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
+            margin-top: 16px;
         }
+
         .gesture-tag {
+            background: rgba(30,30,45,0.6);
+            padding: 6px 14px;
+            border-radius: 100px;
             font-size: 11px;
-            padding: 4px 10px;
-            background: #0a0a0a;
-            border-radius: 6px;
-            color: #888888;
-            border: 1px solid #2a2a2a;
+            font-weight: 500;
+            border: 1px solid rgba(100,100,120,0.3);
+            transition: all 0.2s ease;
         }
+
         .gesture-tag.active {
-            background: #3b82f6;
-            color: white;
+            background: #2563eb;
             border-color: #3b82f6;
         }
-        @keyframes fadeIn {
+
+        .fps-bar {
+            width: 50px;
+            height: 3px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .fps-fill {
+            height: 100%;
+            background: #22c55e;
+            width: 0%;
+            transition: width 0.2s;
+        }
+
+        hr {
+            border-color: rgba(100,100,120,0.2);
+            margin: 16px 0;
+        }
+
+        .landing-hero {
+            text-align: center;
+            margin: 80px 0 80px;
+        }
+
+        .landing-hero .badge {
+            display: inline-block;
+            background: rgba(59, 130, 246, 0.12);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 100px;
+            padding: 6px 18px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #3b82f6;
+            margin-bottom: 24px;
+            letter-spacing: 0.5px;
+        }
+
+        .landing-hero h1 {
+            font-family: 'Space Grotesk', monospace;
+            font-size: clamp(3.5rem, 8vw, 5.5rem);
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            background: linear-gradient(135deg, #ffffff 0%, #3b82f6 60%, #60a5fa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+        }
+
+        .landing-hero .tagline {
+            font-size: clamp(1rem, 3vw, 1.2rem);
+            color: #999;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-bottom: 80px;
+        }
+
+        .feature-block {
+            background: linear-gradient(135deg, rgba(20, 20, 35, 0.8) 0%, rgba(15, 15, 25, 0.6) 100%);
+            backdrop-filter: blur(10px);
+            border-radius: 28px;
+            border: 1px solid rgba(100, 100, 120, 0.25);
+            padding: 0;
+            overflow: hidden;
+            transition: all 0.35s ease;
+            position: relative;
+        }
+
+        .feature-block::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #3b82f6, transparent);
+            opacity: 0;
+            transition: opacity 0.35s ease;
+        }
+
+        .feature-block:hover {
+            transform: translateY(-6px);
+            border-color: rgba(59, 130, 246, 0.4);
+            background: linear-gradient(135deg, rgba(25, 25, 45, 0.9) 0%, rgba(18, 18, 30, 0.7) 100%);
+        }
+
+        .feature-block:hover::before {
+            opacity: 1;
+        }
+
+        .feature-header {
+            padding: 28px 28px 16px 28px;
+            border-bottom: 1px solid rgba(100, 100, 120, 0.15);
+        }
+
+        .feature-number {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            color: #3b82f6;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+
+        .feature-header h3 {
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            color: #fff;
+        }
+
+        .feature-content {
+            padding: 24px 28px 28px 28px;
+        }
+
+        .feature-content p {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #aaa;
+            margin-bottom: 20px;
+        }
+
+        .feature-stats {
+            display: flex;
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .stat-item {
+            flex: 1;
+        }
+
+        .stat-number {
+            font-size: 28px;
+            font-weight: 700;
+            font-family: 'Space Grotesk', monospace;
+            color: #3b82f6;
+            line-height: 1;
+        }
+
+        .stat-desc {
+            font-size: 11px;
+            color: #666;
+            margin-top: 6px;
+            letter-spacing: 0.3px;
+        }
+
+        .feature-tag {
+            display: inline-block;
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            border-radius: 100px;
+            padding: 4px 12px;
+            font-size: 11px;
+            font-weight: 500;
+            color: #3b82f6;
+            margin-bottom: 16px;
+        }
+
+        .gesture-showcase {
+            background: rgba(10, 10, 20, 0.5);
+            backdrop-filter: blur(8px);
+            border-radius: 28px;
+            border: 1px solid rgba(100, 100, 120, 0.2);
+            padding: 48px 40px;
+            margin-bottom: 60px;
+        }
+
+        .gesture-showcase h3 {
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: #3b82f6;
+            margin-bottom: 32px;
+        }
+
+        .gesture-categories {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 32px;
+        }
+
+        .gesture-category {
+            text-align: center;
+            min-width: 100px;
+        }
+
+        .gesture-category .category-name {
+            font-size: 11px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        .gesture-items {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .gesture-chip {
+            background: rgba(30, 30, 45, 0.7);
+            padding: 8px 18px;
+            border-radius: 100px;
+            font-size: 13px;
+            font-weight: 500;
+            border: 1px solid rgba(100, 100, 120, 0.3);
+            color: #ddd;
+            transition: all 0.2s ease;
+        }
+
+        .gesture-chip:hover {
+            border-color: rgba(59, 130, 246, 0.5);
+            color: #3b82f6;
+            transform: translateY(-2px);
+        }
+
+        /* Секция с CTA */
+        .cta-section {
+            text-align: center;
+            padding: 48px 0;
+            margin-bottom: 40px;
+        }
+
+        .cta-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary {
+            display: inline-block;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border: none;
+            border-radius: 100px;
+            padding: 14px 48px;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            font-family: 'Inter', sans-serif;
+            text-decoration: none;
+            box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-secondary {
+            display: inline-block;
+            background: rgba(30, 30, 45, 0.9);
+            border: 1px solid rgba(100, 100, 120, 0.4);
+            border-radius: 100px;
+            padding: 14px 48px;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            font-family: 'Inter', sans-serif;
+            text-decoration: none;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(50, 50, 70, 0.9);
+            border-color: rgba(59, 130, 246, 0.4);
+            transform: translateY(-2px);
+        }
+
+        /* Анимации */
+        @keyframes fadeInUp {
             from {
                 opacity: 0;
-                transform: scale(0.95);
+                transform: translateY(30px);
             }
             to {
                 opacity: 1;
-                transform: scale(1);
+                transform: translateY(0);
             }
         }
-        .meme-image {
-            animation: fadeIn 0.3s ease;
+
+        .feature-block, .gesture-showcase, .landing-hero {
+            animation: fadeInUp 0.6s ease-out forwards;
         }
+
+        .feature-block:nth-child(1) { animation-delay: 0.1s; }
+        .feature-block:nth-child(2) { animation-delay: 0.2s; }
+        .feature-block:nth-child(3) { animation-delay: 0.3s; }
+        .gesture-showcase { animation-delay: 0.4s; }
+
+        /* Адаптивность */
         @media (max-width: 1024px) {
-            .main-content {
+            .features-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 24px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .features-grid {
                 grid-template-columns: 1fr;
             }
-            body {
-                padding: 16px;
+            .landing-hero {
+                margin: 40px 0 50px;
             }
-            .camera-selector {
-                margin-left: 0;
-                width: 100%;
-                justify-content: space-between;
+            .gesture-showcase {
+                padding: 32px 20px;
             }
+            .gesture-categories {
+                flex-direction: column;
+                gap: 24px;
+                align-items: center;
+            }
+            .feature-header h3 {
+                font-size: 20px;
+            }
+            .feature-content {
+                padding: 20px 24px 24px;
+            }
+        }
+
+        /* Скрытие элементов для неавторизованных */
+        .auth-required {
+            display: none;
+        }
+
+        .no-auth {
+            display: block;
         }
     </style>
 </head>
 <body>
-    <div class="container">
+
+<div id="canvas-container"></div>
+
+<div class="page-wrapper">
+    <div class="container content-main">
         <div class="header">
-            <h1>Hand Gesture Recognition</h1>
-            <div class="subtitle">Real-time gesture detection with MediaPipe</div>
-        </div>
-
-        <div class="main-content">
-            <!-- Левая колонка: Видеопоток -->
-            <div class="video-section">
-                <div class="video-container">
-                    <img src="/video_feed" class="video-feed" alt="Video Feed" id="videoFeed" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'640\' height=\'480\' viewBox=\'0 0 640 480\'%3E%3Crect width=\'640\' height=\'480\' fill=\'%23333\'/%3E%3Ctext x=\'320\' y=\'240\' font-size=\'20\' fill=\'%23fff\' text-anchor=\'middle\'%3ECamera Error%3C/text%3E%3C/svg%3E'">
-                </div>
-                <div class="stats-bar">
-                    <div class="status-indicator">
-                        <span class="status-dot"></span>
-                        <span>Live</span>
-                    </div>
-                    <div class="fps-counter" id="fpsCounter">0 fps</div>
-                    <div class="camera-selector">
-                        <select id="cameraSelect" class="camera-select" onchange="switchCamera()">
-                            <option value="">Loading cameras...</option>
-                        </select>
-                        <button class="refresh-cameras" onclick="loadCameras()" title="Refresh cameras">⟳</button>
-                    </div>
-                </div>
+            <div class="title-group">
+                <h1>Gesture Wave</h1>
             </div>
-
-            <!-- Правая колонка: Мемы -->
-            <div class="meme-section">
-                <div class="panel-section">
-                    <div class="panel-title">Reaction Meme</div>
+            <div>
+                <div class="user-menu auth-required" id="userMenu">
+                    <span class="user-name" id="userNameDisplay">User</span>
+                    <button class="logout-btn" onclick="logout()">Выйти</button>
                 </div>
-                <div class="meme-container">
-                    <div class="meme-placeholder" id="memePlaceholder">
-                        🤚 Make a gesture to see reaction
-                    </div>
-                    <img id="memeImage" class="meme-image" alt="Meme">
+                <div class="status-pill no-auth" id="authButtons">
+                    <a href="/login" class="login-btn" style="text-decoration: none;">Войти</a>
+                    <a href="/register" class="login-btn" style="text-decoration: none; background: rgba(255, 255, 255, 0.2); color: #c7c7c7; border-color: rgba(255, 255, 255, 0.3);">Регистрация</a>
                 </div>
             </div>
         </div>
 
-        <!-- Нижняя панель с информацией -->
-        <div class="info-panel">
-            <div class="panel-section">
-                <div class="panel-title">Current Gesture</div>
-                <div class="gesture-display">
-                    <div class="gesture-name" id="gestureName">Waiting...</div>
+        <div id="authContent" class="auth-required">
+            <div class="dashboard-grid">
+                <div class="glass-card">
+                    <div class="video-wrapper">
+                        <img class="video-feed" id="videoFeed" alt="camera stream">
+                    </div>
+                    <div class="video-meta">
+                        <div class="live-indicator">
+                            <span class="pulse-ring"></span>
+                            <span>LIVE</span>
+                        </div>
+                        <div class="fps-text" id="fpsCounter">-- fps</div>
+                        <div class="fps-bar"><div class="fps-fill" id="fpsFill"></div></div>
+                        <div style="margin-left: auto; display: flex; gap: 6px;">
+                            <select id="cameraSelect" class="camera-select"></select>
+                            <button class="icon-btn" onclick="loadCameras()">⟳</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-card meme-panel">
+                    <div class="meme-header">РЕАКЦИЯ</div>
+                    <div class="meme-stage">
+                        <div class="meme-placeholder" id="memePlaceholder">waiting for gesture</div>
+                        <img id="memeImage" class="meme-image" alt="reaction">
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-strip">
+                <div class="stat-block">
+                    <div class="stat-label">АКТИВНЫЙ ЖЕСТ</div>
+                    <div class="gesture-name-live" id="gestureName">—</div>
+                    <div class="gesture-confidence" id="gestureConfidence">—</div>
+                </div>
+                <div class="stat-block">
+                    <div class="stat-label">ОБНАРУЖЕНО РУК</div>
+                    <div class="hand-count-number" id="handCount">0</div>
+                    <div id="handListMini"></div>
+                </div>
+                <div class="stat-block">
+                    <div class="stat-label">БИБЛИОТЕКА ЖЕСТОВ</div>
+                    <div class="gesture-tag-cloud" id="gestureTagsCloud"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="landingContent" class="no-auth">
+            <div class="landing-hero">
+                <h1>Gesture Wave</h1>
+                <p class="tagline">Усовершенствованная система распознавания жестов рук на основе математических вычислений и искуственного интеллекта</p>
+            </div>
+
+            <div class="features-grid">
+                <div class="feature-block">
+                    <div class="feature-header">
+                        <div class="feature-number">01</div>
+                        <h3>Отслеживание рук</h3>
+                    </div>
+                    <div class="feature-content">
+                        <div class="feature-tag">MediaPipe</div>
+                        <p>Обнаружение 21-точечных ориентиров на руке в реальном времени с точностью до долей миллиметра и сверхнизкой задержкой обработки.</p>
+                        <div class="feature-stats">
+                            <div class="stat-item">
+                                <div class="stat-number">21</div>
+                                <div class="stat-desc">ключевых точек</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">~30</div>
+                                <div class="stat-desc">FPS</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="feature-block">
+                    <div class="feature-header">
+                        <div class="feature-number">02</div>
+                        <h3>Распознавание жестов</h3>
+                    </div>
+                    <div class="feature-content">
+                        <div class="feature-tag">10+ жестов</div>
+                        <p>Система распознавания математических операций, основыванной на движении рук, определяющая множественные жесты с высокой степенью достоверности и обратной связью в реальном времени.</p>
+                        <div class="feature-stats">
+                            <div class="stat-item">
+                                <div class="stat-number">95+</div>
+                                <div class="stat-desc">% точность</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="feature-block">
+                    <div class="feature-header">
+                        <div class="feature-number">03</div>
+                        <h3>Визуальная обратная связь</h3>
+                    </div>
+                    <div class="feature-content">
+                        <div class="feature-tag">Интерактивное</div>
+                        <p>Мгновенная визуальная реакция на Ваши жесты. Динамический контент, реагирующий на Ваши движения в режиме реального времени.</p>
+                    </div>
                 </div>
             </div>
 
-            <div class="panel-section">
-                <div class="panel-title">Hand Detection</div>
-                <div class="hand-count" id="handCount">0 hands</div>
-                <div id="handList" class="hand-list"></div>
-            </div>
-
-            <div class="panel-section">
-                <div class="panel-title">Data Management</div>
-                <div class="btn-group">
-                    <button class="btn btn-primary" onclick="saveCurrentLandmarks()">
-                        Save Current Frame
-                    </button>
-                    <button class="btn btn-secondary" onclick="toggleAutoSave()" id="autoSaveBtn">
-                        Auto Save (OFF)
-                    </button>
-                </div>
-                <div id="saveStatus" class="save-status"></div>
-            </div>
-
-            <div class="panel-section">
-                <div class="panel-title">Statistics</div>
-                <div class="stats-grid" id="statistics">
-                    <div class="stat-card">
-                        <div class="stat-value">0</div>
-                        <div class="stat-label">Records</div>
+            <div class="gesture-showcase">
+                <h3>Поддерживаемые жесты</h3>
+                <div class="gesture-categories">
+                    <div class="gesture-category">
+                        <div class="category-name">Одна рука</div>
+                        <div class="gesture-items">
+                            <span class="gesture-chip">Указывая вверх</span>
+                            <span class="gesture-chip">Большой палец вверх</span>
+                            <span class="gesture-chip">Мир</span>
+                            <span class="gesture-chip">Открытая ладонь</span>
+                            <span class="gesture-chip">Кулак</span>
+                            <span class="gesture-chip">Вишенка на торте</span>
+                            <span class="gesture-chip">Небольшой щипок</span>
+                        </div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-value">0 KB</div>
-                        <div class="stat-label">Storage</div>
+                    <div class="gesture-category">
+                        <div class="category-name">Две руки</div>
+                        <div class="gesture-items">
+                            <span class="gesture-chip">Две ладони</span>
+                            <span class="gesture-chip">Я не знаю</span>
+                        </div>
                     </div>
                 </div>
-                <div class="file-info">data/hand_landmarks.json</div>
             </div>
 
-            <div class="panel-section">
-                <div class="panel-title">Supported Gestures with Memes</div>
-                    <div class="gesture-list">
-                        <span class="gesture-tag" data-gesture="Pointing Up">☝️ Pointing Up</span>
-                        <span class="gesture-tag" data-gesture="Thumbs Up">👍 Thumbs Up</span>
-                        <span class="gesture-tag" data-gesture="Peace">✌️ Peace (V)</span>
-                        <span class="gesture-tag" data-gesture="Little">🤏 Little (Pinch)</span>
-                        <span class="gesture-tag" data-gesture="Two Palms Parallel">🤲 Two Palms Parallel</span>
-                        <span class="gesture-tag" data-gesture="Here It Is">👉 Here It Is</span>
-                        <span class="gesture-tag" data-gesture="I Don't Know">🤷 I Don't Know</span>
-                        <span class="gesture-tag" data-gesture="Open Palm">🖐️ Open Palm</span>
-                        <span class="gesture-tag" data-gesture="Cherry">🍒 Cherry (Duck)</span>
-                        <span class="gesture-tag">👊 Fist</span>
-                        <span class="gesture-tag">🤟 Rock</span>
-                        <span class="gesture-tag">👌 OK</span>
-                    </div>
+            <div class="cta-section">
+                <div class="cta-buttons">
+                    <a href="/login" class="btn-primary">Начните</a>
+                    <a href="/register" class="btn-secondary">Создать аккаунт</a>
                 </div>
             </div>
         </div>
     </div>
 
-    <script>
-        let autoSave = false;
-        let autoSaveInterval = null;
-        let currentMeme = 'none';
+    <div class="bottom-spacer"></div>
+</div>
 
-        // Загрузка списка камер
-        async function loadCameras() {
-            try {
-                const response = await fetch('/api/cameras');
-                const data = await response.json();
+<script>
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setClearColor(0x000000, 0);
+    container.appendChild(renderer.domElement);
 
-                const select = document.getElementById('cameraSelect');
-                select.innerHTML = '';
+    const starsCount = 2000;
+    const starsGeometry = new THREE.BufferGeometry();
+    const starsPositions = new Float32Array(starsCount * 3);
+    const starsColors = new Float32Array(starsCount * 3);
 
-                if (data.cameras && data.cameras.length > 0) {
-                    data.cameras.forEach(camera => {
-                        const option = document.createElement('option');
-                        option.value = camera.id;
-                        option.textContent = `${camera.name} (${camera.resolution})`;
-                        if (camera.id === data.current_camera) {
-                            option.selected = true;
-                        }
-                        select.appendChild(option);
-                    });
-                } else {
-                    const option = document.createElement('option');
-                    option.value = '';
-                    option.textContent = 'No cameras found';
-                    select.appendChild(option);
-                }
-            } catch (error) {
-                console.error('Error loading cameras:', error);
-                const select = document.getElementById('cameraSelect');
-                select.innerHTML = '<option value="">Error loading cameras</option>';
-            }
+    for (let i = 0; i < starsCount; i++) {
+        starsPositions[i*3] = (Math.random() - 0.5) * 2000;
+        starsPositions[i*3+1] = (Math.random() - 0.5) * 1000;
+        starsPositions[i*3+2] = (Math.random() - 0.5) * 500 - 150;
+
+        const colorType = Math.random();
+        if (colorType < 0.5) {
+            starsColors[i*3] = 0.5 + Math.random() * 0.5;
+            starsColors[i*3+1] = 0.6 + Math.random() * 0.4;
+            starsColors[i*3+2] = 1.0;
+        } else if (colorType < 0.8) {
+            starsColors[i*3] = 1.0;
+            starsColors[i*3+1] = 1.0;
+            starsColors[i*3+2] = 1.0;
+        } else {
+            starsColors[i*3] = 0.2 + Math.random() * 0.3;
+            starsColors[i*3+1] = 0.3 + Math.random() * 0.3;
+            starsColors[i*3+2] = 1.0;
         }
+    }
 
-        // Переключение камеры
-        async function switchCamera() {
+    starsGeometry.setAttribute('position', new THREE.BufferAttribute(starsPositions, 3));
+    starsGeometry.setAttribute('color', new THREE.BufferAttribute(starsColors, 3));
+
+    const starsMaterial = new THREE.PointsMaterial({
+        size: 1.8,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.9,
+        blending: THREE.AdditiveBlending
+    });
+
+    const starsSystem = new THREE.Points(starsGeometry, starsMaterial);
+    scene.add(starsSystem);
+
+    const bigStarsCount = 400;
+    const bigStarsGeometry = new THREE.BufferGeometry();
+    const bigStarsPositions = new Float32Array(bigStarsCount * 3);
+    const bigStarsColorsArray = new Float32Array(bigStarsCount * 3);
+
+    for (let i = 0; i < bigStarsCount; i++) {
+        bigStarsPositions[i*3] = (Math.random() - 0.5) * 1800;
+        bigStarsPositions[i*3+1] = (Math.random() - 0.5) * 900;
+        bigStarsPositions[i*3+2] = (Math.random() - 0.5) * 400 - 100;
+
+        const isBlue = Math.random() > 0.6;
+        if (isBlue) {
+            bigStarsColorsArray[i*3] = 0.5 + Math.random() * 0.5;
+            bigStarsColorsArray[i*3+1] = 0.7 + Math.random() * 0.3;
+            bigStarsColorsArray[i*3+2] = 1.0;
+        } else {
+            bigStarsColorsArray[i*3] = 1.0;
+            bigStarsColorsArray[i*3+1] = 1.0;
+            bigStarsColorsArray[i*3+2] = 1.0;
+        }
+    }
+
+    bigStarsGeometry.setAttribute('position', new THREE.BufferAttribute(bigStarsPositions, 3));
+    bigStarsGeometry.setAttribute('color', new THREE.BufferAttribute(bigStarsColorsArray, 3));
+
+    const bigStarsMaterial = new THREE.PointsMaterial({
+        size: 1.0,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.95,
+        blending: THREE.AdditiveBlending
+    });
+
+    const bigStarsSystem = new THREE.Points(bigStarsGeometry, bigStarsMaterial);
+    scene.add(bigStarsSystem);
+
+    camera.position.z = 300;
+
+    let mouseX = 0, mouseY = 0;
+    document.addEventListener('mousemove', (event) => {
+        mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+        mouseY = (event.clientY / window.innerHeight) * 2 - 1;
+    });
+
+    function animateStars() {
+        requestAnimationFrame(animateStars);
+        starsSystem.rotation.y = mouseX * 0.15;
+        starsSystem.rotation.x = mouseY * 0.1;
+        bigStarsSystem.rotation.y = mouseX * 0.12;
+        bigStarsSystem.rotation.x = mouseY * 0.08;
+        renderer.render(scene, camera);
+    }
+
+    animateStars();
+
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    let appInitialized = false;
+    let lastMeme = 'none';
+
+    const gestureList = ["Указывая вверх", "Большой палец вверх", "Мир", "Мало", "Две ладони параллельно", "Я не знаю", "Открытая ладонь", "Вишенка на торте", "Кулак", "Рок"];
+
+    function buildTags() {
+        const container = document.getElementById('gestureTagsCloud');
+        if (!container) return;
+        container.innerHTML = '';
+        gestureList.forEach(g => {
+            const span = document.createElement('span');
+            span.className = 'gesture-tag';
+            span.setAttribute('data-gesture', g);
+            span.textContent = g;
+            container.appendChild(span);
+        });
+    }
+
+    function updateActiveTags(gesture) {
+        document.querySelectorAll('.gesture-tag').forEach(tag => {
+            tag.classList.remove('active');
+            if (tag.getAttribute('data-gesture') === gesture) tag.classList.add('active');
+        });
+    }
+
+    async function loadCameras() {
+        try {
+            const res = await fetch('/api/cameras');
+            const data = await res.json();
             const select = document.getElementById('cameraSelect');
-            const cameraId = parseInt(select.value);
-
-            if (isNaN(cameraId) || cameraId < 0) {
-                console.log('Invalid camera ID');
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/switch_camera', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ camera_id: cameraId })
+            if (!select) return;
+            select.innerHTML = '';
+            if (data.cameras && data.cameras.length) {
+                data.cameras.forEach(cam => {
+                    const opt = document.createElement('option');
+                    opt.value = cam.id;
+                    opt.textContent = `${cam.name} (${cam.resolution})`;
+                    if (cam.id === data.current_camera) opt.selected = true;
+                    select.appendChild(opt);
                 });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    console.log(result.message);
-                    // Перезагружаем видео поток
-                    const videoFeed = document.getElementById('videoFeed');
-                    videoFeed.src = '/video_feed?' + new Date().getTime();
-
-                    // Показываем уведомление
-                    showSaveStatus('Camera switched successfully', 'success');
-                } else {
-                    console.error('Failed to switch camera:', result.message);
-                    showSaveStatus('Failed to switch camera', 'error');
-                    // Перезагружаем список камер
-                    loadCameras();
-                }
-            } catch (error) {
-                console.error('Error switching camera:', error);
-                showSaveStatus('Error switching camera', 'error');
+            } else {
+                select.innerHTML = '<option>no cameras</option>';
             }
-        }
+        } catch(e) { console.warn(e); }
+    }
 
-        async function updateInfo() {
-            try {
-                const response = await fetch('/api/landmarks');
-                const data = await response.json();
+    async function switchCamera() {
+        const camId = parseInt(document.getElementById('cameraSelect').value);
+        if (isNaN(camId)) return;
+        try {
+            const resp = await fetch('/api/switch_camera', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({camera_id: camId})
+            });
+            const data = await resp.json();
+            if (data.success) {
+                const videoFeed = document.getElementById('videoFeed');
+                videoFeed.src = '/video_feed?' + Date.now();
+            } else {
+                loadCameras();
+            }
+        } catch(e) { console.error(e); }
+    }
 
-                // Обновляем жест
-                document.getElementById('gestureName').textContent = data.gesture || 'No hand';
+    function updateMemeDisplay(filename) {
+        const img = document.getElementById('memeImage');
+        const placeholder = document.getElementById('memePlaceholder');
+        if (!img || !placeholder) return;
+        img.src = `/static/images/${filename}?t=${Date.now()}`;
+        img.classList.add('active');
+        placeholder.style.display = 'none';
+    }
 
-                // Обновляем мем - ТОЛЬКО если мем изменился
-                if (data.meme && data.meme !== 'none' && data.meme !== currentMeme) {
-                    updateMemeDisplay(data.meme);
-                    currentMeme = data.meme;
-                } else if (data.meme === 'none' && currentMeme !== 'none') {
-                    hideMeme();
-                    currentMeme = 'none';
-                }
+    function hideMemeDisplay() {
+        const img = document.getElementById('memeImage');
+        const placeholder = document.getElementById('memePlaceholder');
+        if (!img || !placeholder) return;
+        img.classList.remove('active');
+        placeholder.style.display = 'flex';
+    }
 
-                // Обновляем количество рук
-                const handCountNum = data.hands ? data.hands.length : 0;
-                document.getElementById('handCount').textContent = `${handCountNum} hand${handCountNum !== 1 ? 's' : ''}`;
-                document.getElementById('fpsCounter').textContent = `${data.fps || 0} fps`;
+    async function updateInfo() {
+        try {
+            const resp = await fetch('/api/landmarks');
+            const data = await resp.json();
 
-                // Обновляем активные теги жестов
-                updateActiveGestureTags(data.gesture);
+            const gesture = data.gesture || 'No hand';
+            const gestureNameEl = document.getElementById('gestureName');
+            if (gestureNameEl) gestureNameEl.innerHTML = gesture;
+            updateActiveTags(gesture);
 
-                // Обновляем список рук
-                const handList = document.getElementById('handList');
+            let confidenceHtml = '—';
+            if (data.hands && data.hands.length > 0) {
+                const avgConfidence = data.hands.reduce((sum, h) => sum + h.confidence, 0) / data.hands.length;
+                confidenceHtml = `уверенность: ${Math.round(avgConfidence * 100)}%`;
+            }
+            const confidenceEl = document.getElementById('gestureConfidence');
+            if (confidenceEl) confidenceEl.innerHTML = confidenceHtml;
+
+            if (data.meme && data.meme !== 'none' && data.meme !== lastMeme) {
+                updateMemeDisplay(data.meme);
+                lastMeme = data.meme;
+            } else if (data.meme === 'none' && lastMeme !== 'none') {
+                hideMemeDisplay();
+                lastMeme = 'none';
+            }
+
+            const handCount = data.hands ? data.hands.length : 0;
+            const handCountEl = document.getElementById('handCount');
+            if (handCountEl) handCountEl.innerHTML = handCount;
+
+            const handDiv = document.getElementById('handListMini');
+            if (handDiv) {
                 if (data.hands && data.hands.length > 0) {
-                    handList.innerHTML = data.hands.map((hand, idx) => `
-                        <div class="hand-item">
-                            <div class="hand-type">${hand.hand_type} Hand</div>
-                            <div class="hand-confidence">confidence: ${(hand.confidence * 100).toFixed(1)}%</div>
+                    handDiv.innerHTML = data.hands.map(h => `
+                        <div class="hand-chip">
+                            <span>${h.hand_type}</span>
+                            <span>${Math.round(h.confidence * 100)}%</span>
                         </div>
                     `).join('');
                 } else {
-                    handList.innerHTML = '<div style="color: #666666; font-size: 13px;">No hands detected</div>';
+                    handDiv.innerHTML = '<div style="color: #666; font-size: 12px;">нет рук</div>';
                 }
-
-                // Автосохранение
-                if (autoSave && data.hands && data.hands.length > 0) {
-                    await saveCurrentLandmarks(true);
-                }
-
-            } catch (error) {
-                console.error('Update error:', error);
-            }
-        }
-
-        function updateMemeDisplay(memeFilename) {
-            const memeImage = document.getElementById('memeImage');
-            const placeholder = document.getElementById('memePlaceholder');
-
-            // Если мем уже активен и такой же, ничего не делаем
-            if (memeImage.classList.contains('active') && memeImage.src.includes(memeFilename)) {
-                return;
             }
 
-            // Предзагружаем изображение перед отображением
-            const img = new Image();
-            img.onload = function() {
-                memeImage.src = img.src;
-                memeImage.classList.add('active');
-                placeholder.style.display = 'none';
-
-                // Добавляем анимацию только при смене мема
-                memeImage.style.animation = 'none';
-                memeImage.offsetHeight; // Trigger reflow
-                memeImage.style.animation = 'fadeIn 0.3s ease';
-            };
-            img.src = `/static/images/${memeFilename}`;
-        }
-
-        function hideMeme() {
-            const memeImage = document.getElementById('memeImage');
-            const placeholder = document.getElementById('memePlaceholder');
-
-            // Если мем уже скрыт, ничего не делаем
-            if (!memeImage.classList.contains('active')) {
-                return;
+            const fps = data.fps || 0;
+            const fpsCounterEl = document.getElementById('fpsCounter');
+            const fpsFillEl = document.getElementById('fpsFill');
+            if (fpsCounterEl) fpsCounterEl.innerHTML = `${fps} fps`;
+            if (fpsFillEl) {
+                const fillPercent = Math.min(100, (fps / 60) * 100);
+                fpsFillEl.style.width = `${fillPercent}%`;
             }
+        } catch(e) { console.warn(e); }
+    }
 
-            memeImage.classList.remove('active');
-            memeImage.style.animation = ''; // Сбрасываем анимацию
-            placeholder.style.display = 'block';
-        }
-
-        function updateActiveGestureTags(currentGesture) {
-            const tags = document.querySelectorAll('.gesture-tag');
-            tags.forEach(tag => {
-                tag.classList.remove('active');
-                if (tag.getAttribute('data-gesture') === currentGesture) {
-                    tag.classList.add('active');
-                }
-            });
-        }
-
-        function showSaveStatus(message, type) {
-            const statusDiv = document.getElementById('saveStatus');
-            statusDiv.textContent = message;
-            statusDiv.className = `save-status ${type}`;
+    function setupVideoFeed() {
+        const videoFeed = document.getElementById('videoFeed');
+        if (!videoFeed) return;
+        videoFeed.src = '/video_feed';
+        videoFeed.onerror = function() {
+            console.log('Video feed error, retrying...');
             setTimeout(() => {
-                if (statusDiv.textContent === message) {
-                    statusDiv.textContent = '';
-                    statusDiv.className = 'save-status';
-                }
-            }, 2000);
-        }
+                videoFeed.src = '/video_feed?' + Date.now();
+            }, 1000);
+        };
+    }
 
-        async function saveCurrentLandmarks(silent = false) {
-            try {
-                const response = await fetch('/api/save_landmarks', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
+    function preloadMemes() {
+        const memes = ['pic_finger_up.jpg','pic_thumb_up.jpg','pic_peace.jpg','fingers_little.jpeg','2_hands_infrontofeachother.jpg','i_don`t_know.jpg','open_palm.jpg','cherry_pic.jpg'];
+        memes.forEach(m => { const img = new Image(); img.src = `/static/images/${m}`; });
+    }
 
-                const result = await response.json();
+    function initApp() {
+        if (appInitialized) return;
+        appInitialized = true;
 
-                if (!silent) {
-                    if (result.success) {
-                        showSaveStatus(`Saved (record #${result.record_id})`, 'success');
-                    } else {
-                        showSaveStatus(`Error: ${result.message}`, 'error');
-                    }
-                }
-
-                updateStatistics();
-
-                return result;
-            } catch (error) {
-                console.error('Save error:', error);
-                if (!silent) {
-                    showSaveStatus('Save failed', 'error');
-                }
-            }
-        }
-
-        async function updateStatistics() {
-            try {
-                const response = await fetch('/api/stats');
-                const stats = await response.json();
-
-                const statCards = document.querySelectorAll('.stat-card');
-                if (statCards.length >= 2) {
-                    statCards[0].querySelector('.stat-value').textContent = stats.total_records;
-                    statCards[1].querySelector('.stat-value').textContent = `${(stats.file_size / 1024).toFixed(1)} KB`;
-                }
-            } catch (error) {
-                console.error('Stats error:', error);
-            }
-        }
-
-        function toggleAutoSave() {
-            autoSave = !autoSave;
-            const btn = document.getElementById('autoSaveBtn');
-
-            if (autoSave) {
-                btn.textContent = 'Auto Save (ON)';
-                btn.classList.add('active');
-
-                autoSaveInterval = setInterval(() => {
-                    saveCurrentLandmarks(true);
-                }, 3000);
-            } else {
-                btn.textContent = 'Auto Save (OFF)';
-                btn.classList.remove('active');
-
-                if (autoSaveInterval) {
-                    clearInterval(autoSaveInterval);
-                    autoSaveInterval = null;
-                }
-            }
-        }
-
-        // Предзагрузка всех мемов
-        function preloadMemes() {
-    const memes = [
-        'pic_finger_up.jpg',
-        'pic_thumb_up.jpg',
-        'pic_peace.jpg',
-        'fingers_little.jpeg',
-        '2_hands_infrontofeachother.jpg',
-        'i_don`t_know.jpg',
-        'open_palm.jpg',
-        'cherry_pic.jpg'
-    ];
-    memes.forEach(meme => {
-        const img = new Image();
-        img.src = `/static/images/${meme}`;
-    });
-}
-
-        // Инициализация
+        buildTags();
         loadCameras();
         preloadMemes();
-        setInterval(updateInfo, 200);
-        updateStatistics();
-        setInterval(updateStatistics, 5000);
+        setupVideoFeed();
 
-        console.log('System initialized');
-    </script>
+        const cameraSelect = document.getElementById('cameraSelect');
+        if (cameraSelect) {
+            cameraSelect.addEventListener('change', switchCamera);
+        }
+
+        setInterval(updateInfo, 150);
+    }
+
+    async function checkAuthAndShowContent() {
+        try {
+            const response = await fetch('/api/auth/check');
+            const data = await response.json();
+
+            const authContent = document.getElementById('authContent');
+            const landingContent = document.getElementById('landingContent');
+            const userMenu = document.getElementById('userMenu');
+            const authButtons = document.getElementById('authButtons');
+            const userNameDisplay = document.getElementById('userNameDisplay');
+
+            if (data.authenticated && data.user) {
+                if (authContent) authContent.style.display = 'block';
+                if (landingContent) landingContent.style.display = 'none';
+                if (userMenu) userMenu.style.display = 'flex';
+                if (authButtons) authButtons.style.display = 'none';
+                if (userNameDisplay) userNameDisplay.textContent = data.user.username;
+                initApp();
+            } else {
+                if (authContent) authContent.style.display = 'none';
+                if (landingContent) landingContent.style.display = 'block';
+                if (userMenu) userMenu.style.display = 'none';
+                if (authButtons) authButtons.style.display = 'flex';
+            }
+        } catch (error) {
+            console.error('Auth check failed:', error);
+            const landingContent = document.getElementById('landingContent');
+            if (landingContent) landingContent.style.display = 'block';
+        }
+    }
+
+    async function logout() {
+        try {
+            const response = await fetch('/api/auth/logout', { method: 'POST' });
+            const data = await response.json();
+            if (data.success) {
+                window.location.reload();
+            }
+        } catch (error) {
+            console.error('Logout failed:', error);
+        }
+    }
+
+    checkAuthAndShowContent();
+</script>
 </body>
 </html>
