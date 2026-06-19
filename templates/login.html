@@ -251,8 +251,8 @@
 
         <form id="loginForm">
             <div class="input-group">
-                <label>НИКНЕЙМ ИЛИ EMAIL</label>
-                <input type="text" id="identifier" placeholder="никнейм или email" required>
+                <label>ИМЯ ПОЛЬЗОВАТЕЛЯ ИЛИ EMAIL</label>
+                <input type="text" id="identifier" placeholder="имя пользователя или email" required>
             </div>
             <div class="input-group">
                 <label>ПАРОЛЬ</label>
@@ -433,7 +433,7 @@
             const data = await response.json();
 
             if (data.success) {
-                showSuccess('Login successful! Redirecting...');
+                showSuccess('Успешный вход! Перенаправление...F');
                 setTimeout(() => {
                     window.location.href = '/';
                 }, 1000);

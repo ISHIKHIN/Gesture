@@ -220,8 +220,8 @@
 
         <form id="registerForm">
             <div class="input-group">
-                <label>НИКНЕЙМ</label>
-                <input type="text" id="никнейм" placeholder="минимум 3 символа" required>
+                <label>ИМЯ ПОЛЬЗОВАТЕЛЯ</label>
+                <input type="text" id="username" placeholder="минимум 3 символа" required>
                 <div class="hint">Только буквы, цифры и подчеркивания.</div>
             </div>
             <div class="input-group">
@@ -425,7 +425,7 @@
             const data = await response.json();
 
             if (data.success) {
-                showSuccess('Registration successful! Redirecting to login...');
+                showSuccess('Успешная регистрация! Перенаправление на вход..." ');
                 setTimeout(() => {
                     window.location.href = '/login';
                 }, 1500);

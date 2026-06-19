@@ -49,16 +49,16 @@ camera_running = True
 camera_thread = None
 
 GESTURE_TO_MEME = {
-    "Pointing Up": 'pic_finger_up.jpg',
-    "Thumbs Up": "pic_thumb_up.jpg",
-    "Peace": "pic_peace.jpg",
-    "Little": "2_fingers_little.jpg",
-    "Fist": "fist.jpg",
-    "Face Palm": "face_palm.jpg",
-    "Two Palms Parallel": "2_hands_infrontofeachother.jpg",
-    "I Don't Know": "i_don`t_know.jpg",
-    "Open Palm": "open_palm.jpg",
-    "Cherry": "cherry_pic.jpg"
+    "Указывая вверх": 'pic_finger_up.jpg',
+    "Большой палец вверх": "pic_thumb_up.jpg",
+    "Мир": "pic_peace.jpg",
+    "Мало": "2_fingers_little.jpeg",
+    "Кулак": "fist.jpg",
+    "Фейс-палм": "face_palm.jpg",
+    "Две ладони параллельно": "2_hands_infrontofeachother.jpg",
+    "Я не знаю": "i_don`t_know.jpg",
+    "Открытая ладонь": "open_palm.jpg",
+    "Вишенка на торте": "cherry_pic.jpg"
 }
 
 
@@ -205,8 +205,6 @@ def camera_processing_thread():
                 gesture_text = current_gesture
                 hands_count = len(current_landmarks)
             title_blue_bgr = (246, 130, 59)
-            cv2.putText(output_frame, f"Gesture: {gesture_text}", (10, 30),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, title_blue_bgr, 2)
             cv2.putText(output_frame, f"Hands: {hands_count}", (10, 55),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, title_blue_bgr, 1)
             cv2.putText(output_frame, f"FPS: {actual_fps}", (10, 80),

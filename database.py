@@ -136,7 +136,7 @@ def authenticate_user(identifier: str, password: str) -> tuple:
             )
             return True, "Login successful", dict(user)
         else:
-            return False, "Invalid username/email or password", None
+            return False, "Неверное имя пользователя/email или пароль", None
 
 
 def get_user_by_id(user_id: int):

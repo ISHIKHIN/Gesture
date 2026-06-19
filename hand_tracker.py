@@ -147,27 +147,19 @@ class HandTracker:
             count2 = sum(fingers2)
 
             # === FIST (кулаки) ===
-            # Кулак - все пальцы опущены
-            is_fist1 = count1 == 0
-            is_fist2 = count2 == 0
-
-            if is_fist1 or is_fist2:
+            if count1 == 0 or count2 == 0:
                 return "Кулак"
 
             # === OPEN PALM (две открытые ладони к камере) ===
-            # Все пальцы подняты на обеих руках
             if count1 == 5 and count2 == 5:
                 return "Открытая ладонь"
 
-            # === TWO PALMS PARALLEL (две ладони друг к другу) ===
-            # Проверяем, что ладони повёрнуты друг к другу
-            # Для этого смотрим на положение больших пальцев
+            # === TWO PALMS PARALLEL ===
             thumb1_x = points1[4]['x']
             thumb2_x = points2[4]['x']
-            palm1_x = points1[0]['x']  # Запястье
+            palm1_x = points1[0]['x']
             palm2_x = points2[0]['x']
 
-            # Если левая рука справа, а правая слева - ладони повёрнуты друг к другу
             if type1 == 'Left' and type2 == 'Right':
                 if thumb1_x > palm1_x and thumb2_x < palm2_x:
                     if count1 == 5 and count2 == 5:
@@ -177,8 +169,7 @@ class HandTracker:
                     if count1 == 5 and count2 == 5:
                         return "Две ладони параллельно"
 
-            # === I DON'T KNOW (ладони в разные стороны) ===
-            # Проверяем, что большие пальцы смотрят наружу
+            # === I DON'T KNOW ===
             if type1 == 'Left' and type2 == 'Right':
                 if thumb1_x < palm1_x and thumb2_x > palm2_x:
                     if count1 == 5 and count2 == 5:
@@ -188,7 +179,6 @@ class HandTracker:
                     if count1 == 5 and count2 == 5:
                         return "Я не знаю"
 
-            # Если две руки но не подошли под специальные жесты
             return "Две руки"
 
         # ========== ЖЕСТЫ С ОДНОЙ РУКОЙ ==========
@@ -204,48 +194,36 @@ class HandTracker:
             if finger_count == 0:
                 return "Кулак"
 
+            # === CHERRY (вишенка на торте) ===
+            # Все пальцы согнуты и касаются большого пальца, образуя форму треугольника или щипка
+            if self.is_cherry_gesture(points, hand_type):
+                return "Вишенка на торте"
+
             # === LITTLE (жест "мало") ===
-            # Указательный и большой подняты, остальные опущены
-            # [thumb, index, middle, ring, pinky]
             if fingers[0] and fingers[1] and not fingers[2] and not fingers[3] and not fingers[4]:
-                # Дополнительная проверка: пальцы должны быть вытянуты
                 thumb_tip = points[4]
                 index_tip = points[8]
                 distance = self.calculate_distance(thumb_tip, index_tip)
-                if distance < 80:  # Пальцы не слишком далеко друг от друга
+                if distance < 80:
                     return "Мало"
 
-            # === POINTING UP (указательный палец вверх) ===
+            # === POINTING UP ===
             if not fingers[0] and fingers[1] and not fingers[2] and not fingers[3] and not fingers[4]:
                 return "Указывая вверх"
 
-
-
-            # === THUMBS UP (большой палец вверх) ===
+            # === THUMBS UP ===
             if fingers[0] and not fingers[1] and not fingers[2] and not fingers[3] and not fingers[4]:
                 return "Большой палец вверх"
 
-            # === PEACE / VICTORY (два пальца) ===
+            # === PEACE / VICTORY ===
             if not fingers[0] and fingers[1] and fingers[2] and not fingers[3] and not fingers[4]:
                 return "Мир"
 
-            # === OPEN PALM (открытая ладонь) ===
+            # === OPEN PALM ===
             if finger_count == 5:
                 return "Открытая ладонь"
 
-            # === CHERRY (вишенка - все пальцы касаются большого) ===
-            thumb_tip = points[4]
-            all_touching = True
-            for tip_idx in [8, 12, 16, 20]:
-                distance = self.calculate_distance(thumb_tip, points[tip_idx])
-                if distance > 50:
-                    all_touching = False
-                    break
-
-            if all_touching and finger_count > 0:
-                return "Вишенка на торте"
-
-            # === ROCK (Spiderman) - указательный и мизинец ===
+            # === ROCK ===
             if fingers[1] and not fingers[2] and not fingers[3] and fingers[4]:
                 return "Рок"
 
@@ -255,12 +233,9 @@ class HandTracker:
                 if distance < 40:
                     return "OK"
 
-            # === FACE PALM (рука-лицо) ===
-            # Проверяем, что ладонь находится в верхней части кадра
-            # и пальцы направлены вверх
-            palm_center_y = points[0]['y']  # Запястье
+            # === FACE PALM ===
+            palm_center_y = points[0]['y']
             if palm_center_y < 250 and finger_count >= 3:
-                # Проверяем, что пальцы направлены вверх
                 index_up = points[8]['y'] < points[6]['y']
                 middle_up = points[12]['y'] < points[10]['y']
                 if index_up and middle_up:
@@ -284,6 +259,73 @@ class HandTracker:
                 return f"{finger_count} Палец(ев)"
 
         return "Неизвестно"
+
+    def is_cherry_gesture(self, landmarks, hand_type):
+        """
+        Проверка жеста "Вишенка на торте" - все пальцы приложены к большому,
+        образуя форму, похожую на треугольник или щипок
+        """
+        points = landmarks
+
+        # Кончик большого пальца
+        thumb_tip = points[4]
+
+        # Проверяем расстояние от каждого пальца до большого
+        finger_tips = [8, 12, 16, 20]  # указательный, средний, безымянный, мизинец
+
+        # Считаем количество пальцев, которые близко к большому
+        close_fingers = 0
+        max_distance = 55  # Максимальное расстояние для касания
+
+        for tip_idx in finger_tips:
+            tip = points[tip_idx]
+            distance = self.calculate_distance(tip, thumb_tip)
+            if distance < max_distance:
+                close_fingers += 1
+
+        # Для жеста "вишенка" нужно минимум 3 пальца, касающихся большого
+        if close_fingers >= 3:
+            return True
+
+        # Альтернативная проверка: все пальцы согнуты и близко к центру ладони
+        # Находим центр между кончиками пальцев
+        center_x = sum(points[tip_idx]['x'] for tip_idx in finger_tips) / 4
+        center_y = sum(points[tip_idx]['y'] for tip_idx in finger_tips) / 4
+
+        # Расстояние от центра до большого пальца
+        center_to_thumb = self.calculate_distance(thumb_tip, {'x': center_x, 'y': center_y, 'z': 0})
+
+        # Если все пальцы собраны в центре и близко к большому
+        if center_to_thumb < 60:
+            # Проверяем разброс пальцев (они должны быть близко друг к другу)
+            max_x = max(points[tip_idx]['x'] for tip_idx in finger_tips)
+            min_x = min(points[tip_idx]['x'] for tip_idx in finger_tips)
+            max_y = max(points[tip_idx]['y'] for tip_idx in finger_tips)
+            min_y = min(points[tip_idx]['y'] for tip_idx in finger_tips)
+
+            # Если пальцы собраны в кучку (разброс небольшой)
+            if (max_x - min_x) < 80 and (max_y - min_y) < 80:
+                return True
+
+        # Проверка на жест "щепотка" (только указательный и большой)
+        index_tip = points[8]
+        index_distance = self.calculate_distance(index_tip, thumb_tip)
+
+        middle_tip = points[12]
+        middle_distance = self.calculate_distance(middle_tip, thumb_tip)
+
+        # Если указательный и средний близко к большому, а остальные тоже близко
+        if index_distance < 40 and middle_distance < 50:
+            # Проверяем остальные пальцы
+            ring_tip = points[16]
+            pinky_tip = points[20]
+            ring_distance = self.calculate_distance(ring_tip, thumb_tip)
+            pinky_distance = self.calculate_distance(pinky_tip, thumb_tip)
+
+            if ring_distance < 60 and pinky_distance < 60:
+                return True
+
+        return False
 
     def release(self):
         self.hands.close()
