@@ -355,8 +355,11 @@ if __name__ == '__main__':
     print("Camera thread started")
 
     print("\n" + "=" * 50)
-    print("Server started at: http://localhost:5000")
+
+    # Для Render используем порт из переменной окружения
+    port = int(os.environ.get('PORT', 5000))
+    print(f"Server started at: http://0.0.0.0:{port}")
     print("Press Ctrl+C to stop")
     print("=" * 50)
 
-    app.run(debug=False, host='0.0.0.0', port=5000, threaded=True)
+    app.run(debug=False, host='0.0.0.0', port=port, threaded=True)
